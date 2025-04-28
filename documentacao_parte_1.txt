@@ -1,0 +1,92 @@
+# 📄 Documentação: Processamento de Dados de Exames Médicos (Pré-API)
+
+## 1. Objetivo
+O objetivo deste processo é calcular o tempo de atraso nos exames médicos dos usuários e classificar se estão "em dia" ou "atrasados", de acordo com parâmetros de saúde predefinidos.  
+Esses dados serão posteriormente utilizados pela API de Exames para consultas.
+
+---
+
+## 2. Fonte de Dados
+- **Arquivo:** `BD_IA.xlsx`
+- **Formato:** Excel
+- **Principais Colunas:**
+  - ID do usuário
+  - Data do último exame para:
+    - GLICEMIA JEJUM
+    - HEMOGLOBINA GLICADA
+    - CREATININA URINA
+
+---
+
+## 3. Tratamento Realizado
+
+### 3.1 Leitura do Arquivo
+- Foi feita a leitura do arquivo `.xlsx` usando `pandas.read_excel`.
+- Corrigido o problema de "invalid escape sequence" utilizando barra invertida dupla `\\` ou string `r'...'` no caminho do arquivo.
+
+### 3.2 Conversão de Datas
+- As colunas de datas foram convertidas para o formato `datetime`, utilizando:
+  ```python
+  pd.to_datetime(coluna, errors='coerce')
+  ```
+- `errors='coerce'` força datas inválidas a se tornarem `NaT` (Not a Time), para evitar erros.
+
+### 3.3 Cálculo da Diferença de Dias
+- Para cada exame, foi calculado o número de dias entre a **data atual** (`datetime.today()`) e a **data do último exame**.
+- Colunas criadas para armazenar o resultado:
+  - `SITUACAO_GLICEMIA`
+  - `SITUACAO_GLICADA`
+  - `SITUACAO_CREATININA`
+
+Exemplo de código usado:
+```python
+BD_IA['SITUACAO_GLICEMIA'] = (datetime.today() - BD_IA['GLICEMIA JEJUM']).dt.days
+```
+
+---
+
+## 4. Parâmetros de Atraso Utilizados
+
+| Exame                    | Limite para estar em dia  |
+|--------------------------|---------------------------|
+| Glicemia Jejum           | 30 dias                   |
+| Hemoglobina Glicada      | 180 dias                  |
+| Creatinina Urina         | 365 dias                  |
+
+---
+
+## 5. Classificação dos Usuários
+- Foram criadas colunas adicionais para indicar se o exame está "em dia" ou "atrasado":
+  - `STATUS_GLICEMIA`
+  - `STATUS_GLICADA`
+  - `STATUS_CREATININA`
+
+Lógica aplicada e parâmetros:
+
+```python
+BD_IA['STATUS_GLICEMIA'] = BD_IA['SITUACAO_GLICEMIA'].apply(lambda x: 'atrasado' if x > 30 else 'em dia')
+BD_IA['STATUS_GLICADA'] = BD_IA['SITUACAO_GLICADA'].apply(lambda x: 'atrasado' if x > 180 else 'em dia')
+BD_IA['STATUS_CREATININA'] = BD_IA['SITUACAO_CREATININA'].apply(lambda x: 'atrasado' if x > 365 else 'em dia')
+```
+
+---
+
+## 6. Resultado Final
+O DataFrame resultante possui:
+- Identificação dos usuários.
+- Dias de atraso para cada exame.
+- Status (atrasado/em dia) para cada exame.
+
+---
+
+## 7. Observações Técnicas
+- Utilizado o pacote `pandas` para manipulação de dados.
+- Datas tratadas para evitar erros de formatação.
+
+
+## 8. API
+- Utilização do pacote FastAPI para criação da API.
+- Utilização do pacote Uvicorn para rodar a API.
+
+
+
